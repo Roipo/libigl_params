@@ -21,4 +21,4 @@
 	url = https://github.com/libigl/cork.git
 [submodule "external/nanogui"]
 	path = external/nanogui
-	url = https://github.com/wjakob/nanogui.git
+	url = https://github.com/schuellc/nanogui.git
