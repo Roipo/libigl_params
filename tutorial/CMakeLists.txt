@@ -13,20 +13,20 @@ option(LIBIGL_VIEWER_WITH_NANOGUI_SERIALIZATION "Show serialization menu"   ON)
 
 ### libIGL options: choose your dependencies (by default everything is OFF, in this example we need the viewer) ###
 find_package(CGAL QUIET)
-option(LIBIGL_WITH_CGAL             "Use CGAL"           "${CGAL_FOUND}")
+option(LIBIGL_WITH_CGAL             "Use CGAL"           OFF)
 option(LIBIGL_WITH_COMISO           "Use CoMiso"         OFF)
 option(LIBIGL_WITH_CORK             "Use CORK"           OFF)
 option(LIBIGL_WITH_EMBREE           "Use Embree"         ON)
 option(LIBIGL_WITH_LIM              "Use LIM"            ON)
 find_package(MATLAB QUIET)
-option(LIBIGL_WITH_MATLAB           "Use Matlab"         "${MATLAB_FOUND}")
-option(LIBIGL_WITH_MOSEK            "Use MOSEK"          "${MOSEK_FOUND}")
+option(LIBIGL_WITH_MATLAB           "Use Matlab"         OFF)
+option(LIBIGL_WITH_MOSEK            "Use MOSEK"          OFF)
 option(LIBIGL_WITH_OPENGL           "Use OpenGL"         ON)
 option(LIBIGL_WITH_OPENGL_GLFW      "Use OpenGL GLFW"    ON)
-option(LIBIGL_WITH_PNG              "Use PNG"            ON)
-option(LIBIGL_WITH_TETGEN           "Use Tetgen"         ON)
+option(LIBIGL_WITH_PNG              "Use PNG"            OFF)
+option(LIBIGL_WITH_TETGEN           "Use Tetgen"         OFF)
 option(LIBIGL_WITH_TRIANGLE         "Use Triangle"       ON)
-option(LIBIGL_WITH_XML              "Use XML"            ON)
+option(LIBIGL_WITH_XML              "Use XML"            OFF)
 ### End   to be tested ----
 
 ### libIGL options: decide if you want to use the functionalities that depends on cgal
