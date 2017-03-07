@@ -124,6 +124,8 @@ namespace viewer
     IGL_INLINE bool load_mesh_from_file(const char* mesh_file_name,unsigned int data_id);
     IGL_INLINE bool save_mesh_to_file(const char* mesh_file_name);
     IGL_INLINE bool save_mesh_to_file(const char* mesh_file_name,unsigned int data_id);
+    std::function<bool(Viewer& viewer,std::string filename)> callback_load_mesh;
+    std::function<bool(Viewer& viewer,std::string filename)> callback_save_mesh;
 
     // Callbacks
     IGL_INLINE bool key_pressed(unsigned int unicode_key,int modifier);
@@ -166,18 +168,6 @@ namespace viewer
     // THESE SHOULD BE DEPRECATED:
     std::function<bool(Viewer& viewer, unsigned char key, int modifiers)> callback_key_down;
     std::function<bool(Viewer& viewer, unsigned char key, int modifiers)> callback_key_up;
-
-    // Pointers to per-callback data
-    void* callback_init_data;
-    void* callback_pre_draw_data;
-    void* callback_post_draw_data;
-    void* callback_mouse_down_data;
-    void* callback_mouse_up_data;
-    void* callback_mouse_move_data;
-    void* callback_mouse_scroll_data;
-    void* callback_key_pressed_data;
-    void* callback_key_down_data;
-    void* callback_key_up_data;
 
   public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
