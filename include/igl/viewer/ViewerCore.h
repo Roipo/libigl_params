@@ -38,8 +38,8 @@ public:
   IGL_INLINE void shut();
 
   // ------------------- Camera control functions
-
-  // Set camera center to new position (keep orientation)
+  
+  // Set camera eye to new position (keep camera orientation)
   IGL_INLINE void set_camera_position(
     const Eigen::Vector3f& pos);
 
@@ -49,6 +49,13 @@ public:
   IGL_INLINE void align_camera_center(
     const Eigen::MatrixXd& V);
   IGL_INLINE void align_camera_center(
+    const Eigen::MatrixXd& V,
+    const Eigen::MatrixXi& F);
+  IGL_INLINE void align_camera_position(
+    const ViewerData& data);
+  IGL_INLINE void align_camera_position(
+    const Eigen::MatrixXd& V);
+  IGL_INLINE void align_camera_position(
     const Eigen::MatrixXd& V,
     const Eigen::MatrixXi& F);
 

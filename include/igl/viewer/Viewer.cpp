@@ -268,7 +268,7 @@ namespace viewer
 
     ngui->addGroup("Viewing Options");
 
-    ngui->addButton("Center object",[&]() {this->core.align_camera_center(this->data);});
+    ngui->addButton("Center object",[&]() {this->core.align_camera_position(this->data);});
     ngui->addButton("Canonical view",[&]()
     {
       this->snap_to_canonical_quaternion();
@@ -404,6 +404,9 @@ namespace viewer
     for(auto d : data_buffer)
       d.set_face_based(false);
 
+    callback_load_mesh = nullptr;
+    callback_save_mesh = nullptr;
+
     // C-style callbacks
     callback_init         = nullptr;
     callback_pre_draw     = nullptr;
@@ -414,16 +417,6 @@ namespace viewer
     callback_mouse_scroll = nullptr;
     callback_key_down     = nullptr;
     callback_key_up       = nullptr;
-
-    callback_init_data          = nullptr;
-    callback_pre_draw_data      = nullptr;
-    callback_post_draw_data     = nullptr;
-    callback_mouse_down_data    = nullptr;
-    callback_mouse_up_data      = nullptr;
-    callback_mouse_move_data    = nullptr;
-    callback_mouse_scroll_data  = nullptr;
-    callback_key_down_data      = nullptr;
-    callback_key_up_data        = nullptr;
 
 #ifndef IGL_VIEWER_VIEWER_QUIET
     const std::string usage(R"(igl::viewer::Viewer usage:
@@ -580,6 +573,9 @@ namespace viewer
 
     std::string mesh_file_name_string = std::string(mesh_file_name);
 
+    if(callback_load_mesh(*this,mesh_file_name))
+      return true;
+
     // first try to load it with a plugin
     for(unsigned int i = 0; i<plugins.size(); ++i)
     {
@@ -651,7 +647,7 @@ namespace viewer
       data.grid_texture();
     }
 
-    core.align_camera_center(data);
+    core.align_camera_position(data);
 
     for(unsigned int i = 0; i<plugins.size(); ++i)
       if(plugins[i]->post_load())
@@ -670,6 +666,9 @@ namespace viewer
     assert(data_buffer.size() > data_id && "data_id out of range");
 
     std::string mesh_file_name_string(mesh_file_name);
+
+    if(callback_save_mesh(*this,mesh_file_name))
+      return true;
 
     // first try to load it with a plugin
     for(unsigned int i = 0; i<plugins.size(); ++i)
@@ -1281,10 +1280,7 @@ namespace viewer
     }
 
     // set camera zoom and position to show mesh centered
-    core.align_camera_center(data);
-
-    // set appropriate light position
-    core.light_position *= core.camera_zoom;
+    core.align_camera_position(data);
 
     // Initialize IGL viewer
     init();
