@@ -573,8 +573,9 @@ namespace viewer
 
     std::string mesh_file_name_string = std::string(mesh_file_name);
 
-    if(callback_load_mesh(*this,mesh_file_name))
-      return true;
+    if(callback_load_mesh != nullptr)
+      if(callback_load_mesh(*this,mesh_file_name))
+        return true;
 
     // first try to load it with a plugin
     for(unsigned int i = 0; i<plugins.size(); ++i)
@@ -667,8 +668,9 @@ namespace viewer
 
     std::string mesh_file_name_string(mesh_file_name);
 
-    if(callback_save_mesh(*this,mesh_file_name))
-      return true;
+    if(callback_save_mesh != nullptr)
+      if(callback_save_mesh(*this,mesh_file_name))
+        return true;
 
     // first try to load it with a plugin
     for(unsigned int i = 0; i<plugins.size(); ++i)
