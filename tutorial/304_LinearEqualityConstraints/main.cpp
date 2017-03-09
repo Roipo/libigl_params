@@ -78,11 +78,10 @@ int main(int argc, char *argv[])
   viewer.data.set_colors(data.C);
 
   viewer.callback_key_down = 
-    [](igl::viewer::Viewer& viewer,unsigned char key,int mod)->bool
+    [&](igl::viewer::Viewer& viewer,unsigned char key,int mod)->bool
     {
       if(key == ' ')
       {
-        Data & data = *static_cast<Data*>(viewer.callback_key_down_data);
         static bool toggle = true;
         viewer.data.set_colors(toggle?data.C_const:data.C);
         toggle = !toggle;
@@ -92,7 +91,6 @@ int main(int argc, char *argv[])
         return false;
       }
     };
-  viewer.callback_key_down_data = &data;
   cout<<
     "Press [space] to toggle between unconstrained and constrained."<<endl;
   viewer.launch();
