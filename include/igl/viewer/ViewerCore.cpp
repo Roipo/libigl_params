@@ -14,6 +14,7 @@
 #include <igl/ortho.h>
 #include <igl/massmatrix.h>
 #include <igl/barycenter.h>
+#include <igl/PI.h>
 #include <Eigen/Geometry>
 #include <iostream>
 
@@ -189,14 +190,14 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
     if (orthographic)
     {
       float length = (camera_eye_translated - camera_center).norm();
-      float h = tan(camera_view_angle/360.0 * M_PI) * (length);
+      float h = tan(camera_view_angle/360.0 * PI) * (length);
       // real camera Zoom
       //ortho(-h*width/height*camera_zoom, h*width/height*camera_zoom, -h*camera_zoom, h*camera_zoom, camera_dnear, camera_dfar,proj); 
       ortho(-h*width/height,h*width/height,-h,h,camera_dnear_zoomed,camera_dfar_zoomed,proj);
     }
     else
     {
-      float fH = tan(camera_view_angle / 360.0 * M_PI) * camera_dnear_zoomed;
+      float fH = tan(camera_view_angle / 360.0 * PI) * camera_dnear_zoomed;
       float fW = fH * (double)width/(double)height;
       //frustum(-fW*camera_zoom, fW*camera_zoom, -fH*camera_zoom, fH*camera_zoom, camera_dnear, camera_dfar,proj); // real camera Zoom
       frustum(-fW,fW,-fH,fH,camera_dnear_zoomed,camera_dfar_zoomed,proj);

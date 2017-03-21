@@ -12,6 +12,7 @@
 #include "per_face_normals.h"
 #include "volume.h"
 #include "doublearea.h"
+#include "PI.h"
 
 template <typename DerivedV, typename DerivedF>
 IGL_INLINE void grad_tet(const Eigen::PlainObjectBase<DerivedV>&V,
@@ -147,7 +148,7 @@ IGL_INLINE void grad_tri(const Eigen::PlainObjectBase<DerivedV>&V,
       // Abstract equilateral triangle v1=(0,0), v2=(h,0), v3=(h/2, (sqrt(3)/2)*h)
 
       // get h (by the area of the triangle)
-      double h = sqrt( (dblA)/sin(M_PI / 3.0)); // (h^2*sin(60))/2. = Area => h = sqrt(2*Area/sin_60)
+      double h = sqrt( (dblA)/sin(igl::PI / 3.0)); // (h^2*sin(60))/2. = Area => h = sqrt(2*Area/sin_60)
 
       Eigen::VectorXd v1,v2,v3;
       v1 << 0,0,0;
