@@ -11,9 +11,7 @@ namespace igl {
     // Viewer members
     IGL_INLINE void serialization(bool s,igl::viewer::Viewer& obj,std::vector<char>& buffer)
     {
-      SERIALIZE_MEMBER(window_maximized);
-      SERIALIZE_MEMBER(window_position);
-      SERIALIZE_MEMBER(window_size);
+      obj.data_buffer[obj.active_data_id] = obj.data;
 
       SERIALIZE_MEMBER(core);
       SERIALIZE_MEMBER(data_buffer);
@@ -24,11 +22,7 @@ namespace igl {
     template<>
     IGL_INLINE void serialize(const igl::viewer::Viewer& obj,std::vector<char>& buffer)
     {
-      auto& obj_temp = const_cast<igl::viewer::Viewer&>(obj);
-      
-      obj_temp.data_buffer[obj.active_data_id] = obj.data;
-
-      serialization(true,obj_temp,buffer);
+      serialization(true,const_cast<igl::viewer::Viewer&>(obj),buffer);
     }
 
     template<>
@@ -68,7 +62,6 @@ namespace igl {
       SERIALIZE_MEMBER(texture_R);
       SERIALIZE_MEMBER(texture_G);
       SERIALIZE_MEMBER(texture_B);
-      SERIALIZE_MEMBER(texture_A);
 
       SERIALIZE_MEMBER(lines);
       SERIALIZE_MEMBER(points);

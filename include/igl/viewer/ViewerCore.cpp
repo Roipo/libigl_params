@@ -115,10 +115,7 @@ IGL_INLINE void igl::viewer::ViewerCore::clear_framebuffers()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-IGL_INLINE void igl::viewer::ViewerCore::draw(
-  ViewerData& data,
-  OpenGL_state& opengl,
-  bool update_matrices)
+IGL_INLINE void igl::viewer::ViewerCore::draw(ViewerData& data, OpenGL_state& opengl, bool update_matrices)
 {
   using namespace std;
   using namespace Eigen;
@@ -130,9 +127,6 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
     glEnable(GL_DEPTH_TEST);
   else
     glDisable(GL_DEPTH_TEST);
-
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   /* Bind and potentially refresh mesh/line/point data */
   if (data.dirty)
@@ -292,9 +286,9 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
       glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
       // This must be enabled, otherwise glLineWidth has no effect
       glEnable(GL_LINE_SMOOTH);
-      glLineWidth(data.line_width);
-
+      glLineWidth(overlay_line_width);
       opengl.draw_overlay_lines();
+			glLineWidth(data.line_width);
     }
 
     if (data.points.rows() > 0)
@@ -355,8 +349,8 @@ IGL_INLINE void igl::viewer::ViewerCore::draw_buffer(std::vector<ViewerData*>& d
   assert(R.rows() == G.rows() && G.rows() == B.rows() && B.rows() == A.rows());
   assert(R.cols() == G.cols() && G.cols() == B.cols() && B.cols() == A.cols());
 
-  unsigned x = R.rows();
-  unsigned y = R.cols();
+  int x = R.rows();
+  int y = R.cols();
 
   // Create frame buffer
   GLuint frameBuffer;
@@ -456,7 +450,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
 
   // Default lights settings
   shininess = 35.0f;
-  light_position << 0.0f, -0.30f, -500.0f;
+  light_position << 0.0f, -0.30f, -5000.0f;
   lighting_factor = 1.0f; //on
 
   // Global scene transformation
@@ -468,7 +462,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   camera_zoom = 1.0f;
   orthographic = false;
   camera_view_angle = 45.0;
-  camera_dnear = 1.0;
+  camera_dnear = 0.0;
   camera_dfar = 100.0;
   camera_eye << 0,0,5;
   camera_center << 0,0,0;

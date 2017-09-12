@@ -113,64 +113,45 @@ IGL_INLINE void igl::viewer::ViewerData::set_colors(const Eigen::MatrixXd &C)
     igl::parula(C,true,C3);
     return set_colors(C3);
   }
-
-  // No transparancy if not specified
-  Eigen::MatrixXd color = C;
-  if(C.rows()>0 && C.cols() == 3)
-  {
-    color.conservativeResize(color.rows(),4);
-    color.col(3).fill(1);
-  }
-
   // Ambient color should be darker color
   const auto ambient = [](const MatrixXd & C)->MatrixXd
   {
-    MatrixXd T = 0.1*C;
-    T.col(3) = C.col(3);
-    return T;
+    return 0.1*C;
   };
   // Specular color should be a less saturated and darker color: dampened
   // highlights
   const auto specular = [](const MatrixXd & C)->MatrixXd
   {
     const double grey = 0.3;
-    MatrixXd T = grey+0.1*(C.array()-grey);
-    T.col(3) = C.col(3);
-    return T;
+    return grey+0.1*(C.array()-grey);
   };
-  if (color.rows() == 1)
+  if (C.rows() == 1)
   {
     for (unsigned i=0;i<V_material_diffuse.rows();++i)
     {
-      V_material_diffuse.row(i) << color.row(0);
+      V_material_diffuse.row(i) = C.row(0);
     }
     V_material_ambient = ambient(V_material_diffuse);
     V_material_specular = specular(V_material_diffuse);
 
     for (unsigned i=0;i<F_material_diffuse.rows();++i)
     {
-      F_material_diffuse.row(i) << color.row(0);
+      F_material_diffuse.row(i) = C.row(0);
     }
     F_material_ambient = ambient(F_material_diffuse);
     F_material_specular = specular(F_material_diffuse);
   }
-  else if (color.rows() == V.rows())
+  else if (C.rows() == V.rows())
   {
     set_face_based(false);
-    for (unsigned i=0;i<V_material_diffuse.rows();++i)
-    {
-      V_material_diffuse.row(i) << color.row(i);
-    }
+    V_material_diffuse = C;
     V_material_ambient = ambient(V_material_diffuse);
     V_material_specular = specular(V_material_diffuse);
   }
-  else if (color.rows() == F.rows())
+  else if (C.rows() == F.rows())
   {
     set_face_based(true);
-    for (unsigned i=0;i<F_material_diffuse.rows();++i)
-    {
-      F_material_diffuse.row(i) << color.row(i);
-    }
+    F_material_diffuse = C;
     F_material_ambient = ambient(F_material_diffuse);
     F_material_specular = specular(F_material_diffuse);
   }
@@ -210,20 +191,6 @@ IGL_INLINE void igl::viewer::ViewerData::set_texture(
   texture_R = R;
   texture_G = G;
   texture_B = B;
-  texture_A = Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>::Constant(R.rows(),R.cols(),255);
-  dirty |= DIRTY_TEXTURE;
-}
-
-IGL_INLINE void igl::viewer::ViewerData::set_texture(
-  const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
-  const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
-  const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
-  const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A)
-{
-  texture_R = R;
-  texture_G = G;
-  texture_B = B;
-  texture_A = A;
   dirty |= DIRTY_TEXTURE;
 }
 
@@ -337,13 +304,13 @@ IGL_INLINE void igl::viewer::ViewerData::clear()
   V                       = Eigen::MatrixXd (0,3);
   F                       = Eigen::MatrixXi (0,3);
 
-  F_material_ambient      = Eigen::MatrixXd (0,4);
-  F_material_diffuse      = Eigen::MatrixXd (0,4);
-  F_material_specular     = Eigen::MatrixXd (0,4);
+  F_material_ambient      = Eigen::MatrixXd (0,3);
+  F_material_diffuse      = Eigen::MatrixXd (0,3);
+  F_material_specular     = Eigen::MatrixXd (0,3);
 
-  V_material_ambient      = Eigen::MatrixXd (0,4);
-  V_material_diffuse      = Eigen::MatrixXd (0,4);
-  V_material_specular     = Eigen::MatrixXd (0,4);
+  V_material_ambient      = Eigen::MatrixXd (0,3);
+  V_material_diffuse      = Eigen::MatrixXd (0,3);
+  V_material_specular     = Eigen::MatrixXd (0,3);
 
   F_normals               = Eigen::MatrixXd (0,3);
   V_normals               = Eigen::MatrixXd (0,3);
@@ -362,6 +329,7 @@ IGL_INLINE void igl::viewer::ViewerData::reset()
   clear();
 
   // Default model viewing parameters
+	model = Eigen::Matrix4f::Identity();
   model_translation << 0,0,0;
 
   // Default visualization options
@@ -380,6 +348,10 @@ IGL_INLINE void igl::viewer::ViewerData::reset()
   // Default point size / line width
   point_size = 30;
   line_width = 0.5f;
+
+	// default texture color
+	tex_col1 << 0.368f, 0.477f, 0.933f, 1.0f;
+	tex_col2 << 1.0f, 0.903f, 0.649f, 1.0f;
 }
 
 IGL_INLINE void igl::viewer::ViewerData::compute_normals()
@@ -391,22 +363,9 @@ IGL_INLINE void igl::viewer::ViewerData::compute_normals()
 
 IGL_INLINE void igl::viewer::ViewerData::uniform_colors(Eigen::Vector3d ambient, Eigen::Vector3d diffuse, Eigen::Vector3d specular)
 {
-  Eigen::Vector4d ambient4;
-  Eigen::Vector4d diffuse4;
-  Eigen::Vector4d specular4;
-
-  ambient4 << ambient, 1;
-  diffuse4 << diffuse, 1;
-  specular4 << specular, 1;
-
-  uniform_colors(ambient4,diffuse4,specular4);
-}
-
-IGL_INLINE void igl::viewer::ViewerData::uniform_colors(Eigen::Vector4d ambient, Eigen::Vector4d diffuse, Eigen::Vector4d specular)
-{
-  V_material_ambient.resize(V.rows(),4);
-  V_material_diffuse.resize(V.rows(),4);
-  V_material_specular.resize(V.rows(),4);
+  V_material_ambient.resize(V.rows(),3);
+  V_material_diffuse.resize(V.rows(),3);
+  V_material_specular.resize(V.rows(),3);
 
   for (unsigned i=0; i<V.rows();++i)
   {
@@ -415,9 +374,9 @@ IGL_INLINE void igl::viewer::ViewerData::uniform_colors(Eigen::Vector4d ambient,
     V_material_specular.row(i) = specular;
   }
 
-  F_material_ambient.resize(F.rows(),4);
-  F_material_diffuse.resize(F.rows(),4);
-  F_material_specular.resize(F.rows(),4);
+  F_material_ambient.resize(F.rows(),3);
+  F_material_diffuse.resize(F.rows(),3);
+  F_material_specular.resize(F.rows(),3);
 
   for (unsigned i=0; i<F.rows();++i)
   {
@@ -449,8 +408,10 @@ IGL_INLINE void igl::viewer::ViewerData::grid_texture()
 
   unsigned size = 128;
   unsigned size2 = size/2;
-  texture_R.resize(size, size);
-  for (unsigned i=0; i<size; ++i)
+	texture_R.resize(size, size); texture_R.setZero();
+	texture_G.resize(size, size); texture_G.setZero();
+	texture_B.resize(size, size); texture_B.setZero();
+  /*for (unsigned i=0; i<size; ++i)
   {
     for (unsigned j=0; j<size; ++j)
     {
@@ -461,7 +422,29 @@ IGL_INLINE void igl::viewer::ViewerData::grid_texture()
   }
 
   texture_G = texture_R;
-  texture_B = texture_R;
-  texture_A = Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>::Constant(texture_R.rows(),texture_R.cols(),255);
+  texture_B = texture_R;*/
+
+	Eigen::Matrix<unsigned char, 3, 1> t1 = (255.0f * tex_col1.block<3, 1>(0, 0)).cast<unsigned char>();
+	Eigen::Matrix<unsigned char, 3, 1> t2 = (255.0f * tex_col2.block<3, 1>(0, 0)).cast<unsigned char>();
+	int b = 2;
+	for (unsigned i = b; i<size-b; ++i)
+	{
+		for (unsigned j = b; j<size-b; ++j)
+		{
+			if ((i > size2+b && j < size2-b) || (i < size2-b && j > size2+b))
+			{
+				texture_R(i, j) = t1(0);
+				texture_G(i, j) = t1(1);
+				texture_B(i, j) = t1(2);
+			}
+			if ((i < size2-b && j < size2-b) || (i > size2+b && j > size2+b))
+			{
+				texture_R(i, j) = t2(0);
+				texture_G(i, j) = t2(1);
+				texture_B(i, j) = t2(2);
+			}
+		}
+	}
+
   dirty |= DIRTY_TEXTURE;
 }
