@@ -21,14 +21,15 @@ IGL_INLINE void igl::viewer::ViewerCore::set_camera_position(
   const Eigen::Vector3f& pos)
 {
   Eigen::Vector3f camera_direction = camera_center - camera_eye;
-  camera_eye = pos;
-  camera_center = camera_eye + camera_direction;
+  camera_center = pos;
+  camera_eye = camera_center - camera_direction;
 }
 
 IGL_INLINE void igl::viewer::ViewerCore::align_camera_center(
   const ViewerData& data)
 {
   align_camera_center(data.V,data.F);
+  camera_center += data.model_translation;
 }
 
 IGL_INLINE void igl::viewer::ViewerCore::align_camera_center(
@@ -38,30 +39,6 @@ IGL_INLINE void igl::viewer::ViewerCore::align_camera_center(
 }
 
 IGL_INLINE void igl::viewer::ViewerCore::align_camera_center(
-  const Eigen::MatrixXd& V,
-  const Eigen::MatrixXi& F)
-{
-  if(V.rows() == 0)
-    return;
-
-  Eigen::Vector3f shift;
-  get_zoom_and_shift_to_fit_mesh(V,F,camera_zoom,shift);
-  camera_center = -shift + global_translation;
-}
-
-IGL_INLINE void igl::viewer::ViewerCore::align_camera_position(
-  const ViewerData& data)
-{
-  align_camera_position(data.V,data.F);
-}
-
-IGL_INLINE void igl::viewer::ViewerCore::align_camera_position(
-  const Eigen::MatrixXd& V)
-{
-  align_camera_position(V,Eigen::MatrixXi());
-}
-
-IGL_INLINE void igl::viewer::ViewerCore::align_camera_position(
   const Eigen::MatrixXd& V,
   const Eigen::MatrixXi& F)
 {
@@ -126,7 +103,7 @@ IGL_INLINE void igl::viewer::ViewerCore::get_zoom_and_shift_to_fit_mesh(
   double x_scale = fabs(max_point[0] - min_point[0]);
   double y_scale = fabs(max_point[1] - min_point[1]);
   double z_scale = fabs(max_point[2] - min_point[2]);
-  zoom = std::max(z_scale,std::max(x_scale,y_scale))/2;
+  zoom = std::max(z_scale,std::max(x_scale,y_scale)) / 2;
 }
 
 IGL_INLINE void igl::viewer::ViewerCore::clear_framebuffers()
@@ -138,10 +115,7 @@ IGL_INLINE void igl::viewer::ViewerCore::clear_framebuffers()
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-IGL_INLINE void igl::viewer::ViewerCore::draw(
-  ViewerData& data,
-  OpenGL_state& opengl,
-  bool update_matrices)
+IGL_INLINE void igl::viewer::ViewerCore::draw(ViewerData& data, OpenGL_state& opengl, bool update_matrices)
 {
   using namespace std;
   using namespace Eigen;
@@ -153,9 +127,6 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
     glEnable(GL_DEPTH_TEST);
   else
     glDisable(GL_DEPTH_TEST);
-
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   /* Bind and potentially refresh mesh/line/point data */
   if (data.dirty)
@@ -175,12 +146,12 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
     proj  = Eigen::Matrix4f::Identity();
 
     // camera zoom by shifting
-    Vector3f camera_eye_translated = camera_center + (camera_eye-camera_center)*camera_zoom;
+    Vector3f camera_eye_zoomed = camera_center + (camera_eye-camera_center)*camera_zoom;
     float camera_dnear_zoomed = camera_dnear * camera_zoom;
     float camera_dfar_zoomed = camera_dfar * camera_zoom;
 
     // Set view
-    look_at(camera_eye_translated,camera_center,camera_up,view);
+    look_at(camera_eye_zoomed,camera_center, camera_up, view);
 
     float width  = viewport(2);
     float height = viewport(3);
@@ -188,7 +159,7 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
     // Set projection
     if (orthographic)
     {
-      float length = (camera_eye_translated - camera_center).norm();
+      float length = (camera_eye_zoomed - camera_center).norm();
       float h = tan(camera_view_angle/360.0 * M_PI) * (length);
       // real camera Zoom
       //ortho(-h*width/height*camera_zoom, h*width/height*camera_zoom, -h*camera_zoom, h*camera_zoom, camera_dnear, camera_dfar,proj); 
@@ -315,9 +286,9 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
       glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
       // This must be enabled, otherwise glLineWidth has no effect
       glEnable(GL_LINE_SMOOTH);
-      glLineWidth(data.line_width);
-
+      glLineWidth(overlay_line_width);
       opengl.draw_overlay_lines();
+			glLineWidth(data.line_width);
     }
 
     if (data.points.rows() > 0)
@@ -378,8 +349,8 @@ IGL_INLINE void igl::viewer::ViewerCore::draw_buffer(std::vector<ViewerData*>& d
   assert(R.rows() == G.rows() && G.rows() == B.rows() && B.rows() == A.rows());
   assert(R.cols() == G.cols() && G.cols() == B.cols() && B.cols() == A.cols());
 
-  unsigned x = R.rows();
-  unsigned y = R.cols();
+  int x = R.rows();
+  int y = R.cols();
 
   // Create frame buffer
   GLuint frameBuffer;
@@ -479,7 +450,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
 
   // Default lights settings
   shininess = 35.0f;
-  light_position << 0.0f, -3000.0f, -50000.0f;
+  light_position << 0.0f, -0.30f, -5000.0f;
   lighting_factor = 1.0f; //on
 
   // Global scene transformation
@@ -491,7 +462,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   camera_zoom = 1.0f;
   orthographic = false;
   camera_view_angle = 45.0;
-  camera_dnear = 1.0;
+  camera_dnear = 0.0;
   camera_dfar = 100.0;
   camera_eye << 0,0,5;
   camera_center << 0,0,0;

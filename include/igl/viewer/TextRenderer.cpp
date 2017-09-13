@@ -45,9 +45,9 @@ IGL_INLINE int igl::viewer::TextRenderer::Shut()
 }
 
 IGL_INLINE void igl::viewer::TextRenderer::BeginDraw(
-  const Eigen::Matrix4f &view,
+  const Eigen::Matrix4f &view, 
   const Eigen::Matrix4f &proj,
-  const Eigen::Vector4f &_viewport,
+  const Eigen::Vector4f &_viewport, 
   float _object_scale)
 {
   using namespace std;
@@ -91,7 +91,8 @@ IGL_INLINE void igl::viewer::TextRenderer::DrawText(
   Eigen::Vector3f coord = igl::project(Eigen::Vector3f(tpos(0),tpos(1),tpos(2)),
       view_matrix, proj_matrix, viewport);
 
-  nvgFontSize(ctx, 16*mPixelRatio);
+  //nvgFontSize(ctx, 16*mPixelRatio);
+	nvgFontSize(ctx, 50 * mPixelRatio);
   nvgFontFace(ctx, "sans");
   nvgTextAlign(ctx, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
   nvgFillColor(ctx, nvgRGBA(color[0],color[1],color[2],255));

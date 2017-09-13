@@ -33,13 +33,10 @@
 
 #include <Eigen/LU>
 
-//#define GLFW_INCLUDE_GLU
-#if defined(__APPLE__)
-#define GLFW_INCLUDE_GLCOREARB
-#else
-#define GL_GLEXT_PROTOTYPES
+#define GLFW_INCLUDE_GLU
+#ifndef _WIN32
+  #define GLFW_INCLUDE_GLCOREARB
 #endif
-
 #include <GLFW/glfw3.h>
 
 #include <cmath>
@@ -83,6 +80,7 @@ static igl::viewer::Viewer * __viewer;
 static double highdpi = 1;
 static double scroll_x = 0;
 static double scroll_y = 0;
+static int global_KMod = 0;
 
 static void glfw_mouse_press(GLFWwindow* window, int button, int action, int modifier)
 {
@@ -149,19 +147,6 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
   }
 }
 
-static void glfw_window_position(GLFWwindow* window,int left,int top)
-{
-#ifdef GLFW_VERSION_HIGHER_THAN_3_1
-  __viewer->window_maximized = glfwGetWindowAttrib(window,GLFW_MAXIMIZED);
-#endif
-
-  if(!__viewer->window_maximized)
-  {
-    __viewer->window_position(0) = left;
-    __viewer->window_position(1) = top;
-  }
-}
-
 static void glfw_window_size(GLFWwindow* window, int width, int height)
 {
   int w = width*highdpi;
@@ -222,7 +207,8 @@ namespace viewer
     ngui->setFixedSize(Eigen::Vector2i(60,20));
 
     // Create nanogui widgets
-    nanogui::Window *window = ngui->addWindow(Eigen::Vector2i(10,10),"libIGL-Viewer");
+    //nanogui::Window *window = ngui->addWindow(Eigen::Vector2i(10,10),"libIGL-Viewer");
+		nanogui::Window *window = ngui->addWindow(Eigen::Vector2i(2180/2, 10), "libIGL-Viewer");
 
     // ---------------------- LOADING ----------------------
 
@@ -268,7 +254,7 @@ namespace viewer
 
     ngui->addGroup("Viewing Options");
 
-    ngui->addButton("Center object",[&]() {this->core.align_camera_position(this->data);});
+    ngui->addButton("Center object",[&]() {this->core.align_camera_center(this->data);});
     ngui->addButton("Canonical view",[&]()
     {
       this->snap_to_canonical_quaternion();
@@ -393,8 +379,6 @@ namespace viewer
     data = data_buffer[active_data_id];
     opengl.push_back(OpenGL_state());
 
-    window_maximized = false;
-
     // Temporary variables initialization
     down = false;
     hack_never_moved = true;
@@ -403,9 +387,6 @@ namespace viewer
     // Per face
     for(auto d : data_buffer)
       d.set_face_based(false);
-
-    callback_load_mesh = nullptr;
-    callback_save_mesh = nullptr;
 
     // C-style callbacks
     callback_init         = nullptr;
@@ -418,11 +399,20 @@ namespace viewer
     callback_key_down     = nullptr;
     callback_key_up       = nullptr;
 
+    callback_init_data          = nullptr;
+    callback_pre_draw_data      = nullptr;
+    callback_post_draw_data     = nullptr;
+    callback_mouse_down_data    = nullptr;
+    callback_mouse_up_data      = nullptr;
+    callback_mouse_move_data    = nullptr;
+    callback_mouse_scroll_data  = nullptr;
+    callback_key_down_data      = nullptr;
+    callback_key_up_data        = nullptr;
+
 #ifndef IGL_VIEWER_VIEWER_QUIET
     const std::string usage(R"(igl::viewer::Viewer usage:
   [drag]  Rotate scene
   A,a     Toggle animation (tight draw loop)
-  F,f     Toggle face based
   I,i     Toggle invert normals
   L,l     Toggle wireframe
   O,o     Toggle orthographic/perspective projection
@@ -510,6 +500,11 @@ namespace viewer
       return data_buffer[data_id];
   }
 
+  IGL_INLINE unsigned int Viewer::get_active_mesh_id()
+  {
+    return active_data_id;
+  }
+
   IGL_INLINE bool Viewer::remove_mesh(unsigned int data_id)
   {
     assert(data_buffer.size() > data_id && "data_id out of range");
@@ -534,11 +529,6 @@ namespace viewer
     return true;
   }
 
-  IGL_INLINE unsigned int Viewer::get_active_mesh()
-  {
-    return active_data_id;
-  }
-
   IGL_INLINE bool Viewer::set_active_mesh(unsigned int data_id)
   {
     assert(data_buffer.size() > data_id && "data_id out of range");
@@ -557,11 +547,6 @@ namespace viewer
     return true;
   }
 
-  IGL_INLINE unsigned int Viewer::get_mesh_count()
-  {
-    return data_buffer.size();
-  }
-
   IGL_INLINE bool Viewer::load_mesh_from_file(const char* mesh_file_name)
   {
     return load_mesh_from_file(mesh_file_name,active_data_id);
@@ -572,10 +557,6 @@ namespace viewer
     assert(data_buffer.size() > data_id && "data_id out of range");
 
     std::string mesh_file_name_string = std::string(mesh_file_name);
-
-    if(callback_load_mesh != nullptr)
-      if(callback_load_mesh(*this,mesh_file_name))
-        return true;
 
     // first try to load it with a plugin
     for(unsigned int i = 0; i<plugins.size(); ++i)
@@ -605,8 +586,7 @@ namespace viewer
       if(!igl::readOFF(mesh_file_name_string,V,F))
         return false;
       data.set_mesh(V,F);
-    }
-	else if(extension == "obj" || extension =="OBJ")
+    } else if(extension == "obj" || extension =="OBJ")
     {
       Eigen::MatrixXd corner_normals;
       Eigen::MatrixXi fNormIndices;
@@ -621,7 +601,7 @@ namespace viewer
           mesh_file_name_string,
           V,UV_V,corner_normals,F,UV_F,fNormIndices)))
       {
-	    return false;
+		    return false;
       }
       
       data.set_mesh(V,F);
@@ -631,8 +611,7 @@ namespace viewer
         data.set_uv(UV_V,UV_F);
       }
 
-    }
-	else
+    } else
     {
       // unrecognized file type
       printf("Error: %s is not a recognized file type.\n",extension.c_str());
@@ -648,7 +627,7 @@ namespace viewer
       data.grid_texture();
     }
 
-    core.align_camera_position(data);
+    core.align_camera_center(data);
 
     for(unsigned int i = 0; i<plugins.size(); ++i)
       if(plugins[i]->post_load())
@@ -667,10 +646,6 @@ namespace viewer
     assert(data_buffer.size() > data_id && "data_id out of range");
 
     std::string mesh_file_name_string(mesh_file_name);
-
-    if(callback_save_mesh != nullptr)
-      if(callback_save_mesh(*this,mesh_file_name))
-        return true;
 
     // first try to load it with a plugin
     for(unsigned int i = 0; i<plugins.size(); ++i)
@@ -731,12 +706,6 @@ namespace viewer
         case 'a':
         {
           core.is_animating = !core.is_animating;
-          return true;
-        }
-		case 'F':
-        case 'f':
-        {
-          data.set_face_based(!data.face_based);
           return true;
         }
         case 'I':
@@ -875,14 +844,7 @@ namespace viewer
     switch (button)
     {
       case MouseButton::Left:
-        if(down_modifier == GLFW_MOD_SHIFT)
-        {
-          mouse_mode = MouseMode::Translation;
-        }
-        else
-        {
-          mouse_mode = MouseMode::Rotation;
-        }
+        mouse_mode = MouseMode::Rotation;
         break;
 
       case MouseButton::Right:
@@ -1045,11 +1007,47 @@ namespace viewer
 
     for(int i=0;i<data_buffer.size();i++)
     {
-      if(i != active_data_id)
-        core.draw(data_buffer[i],opengl[i]);
-      else
-        core.draw(data,opengl[active_data_id]);
+			if (i == 0) // 3d mesh, right
+			{
+				core.camera_zoom = core.mesh_camera_zoom;
+				core.viewport << 1200, 0, 1200, 1350;
+				core.lighting_factor = 1.0;
+			}
+			else if (i == 1) // uv mesh, left
+			{
+				core.camera_zoom = core.uv_camera_zoom;
+				core.viewport << 0, 0, 1200, 1350;
+				core.lighting_factor = 0.;
+			}
+			else if (i == 2) // viewport highlights, left or right
+			{
+				core.camera_zoom = 1.0; // core.highlight_camera_zoom;
+				core.viewport = core.highlight_viewport;
+			}
+			else if (i == 3) // colored squares
+			{
+				core.camera_zoom = 1.0;
+				core.viewport << 0, 0, 1200, 1350;
+			}
+			else if (i == 4) //crosshair, left or right
+			{
+				//core.camera_zoom = core.uv_camera_zoom;
+				core.camera_zoom = core.highlight_camera_zoom;
+				//core.viewport << 0, 0, 1200, 1350;
+				core.viewport = core.highlight_viewport;
+				//core.viewport << 0, 0, 2400, 1350;
+			}
+			if (i != active_data_id)
+			{
+				core.draw(data_buffer[i], opengl[i]);
+			}
+			else
+			{
+				core.draw(data, opengl[active_data_id]);
+			}
     }
+		core.viewport = core.highlight_viewport;
+		core.camera_zoom = 1.0;
 
     if (callback_post_draw)
       if (callback_post_draw(*this))
@@ -1060,9 +1058,8 @@ namespace viewer
         break;
 
 #ifdef IGL_VIEWER_WITH_NANOGUI
-  ngui->refresh();
-	screen->drawContents();
-	screen->drawWidgets();
+    ngui->refresh();
+    screen->drawWidgets();
 #endif
   }
 
@@ -1074,10 +1071,7 @@ namespace viewer
 
 #ifdef IGL_VIEWER_WITH_NANOGUI_SERIALIZATION
 
-    igl::serialize(window_maximized,"window_maximized",fname.c_str(),true);
-    igl::serialize(window_position,"window_position",fname.c_str());
-    igl::serialize(window_size,"window_size",fname.c_str());
-    igl::serialize(core,"Core",fname.c_str());
+    igl::serialize(core,"Core",fname.c_str(),true);
 
 #ifndef ENABLE_SERIALIZATION_CORE_ONLY
     data_buffer[active_data_id] = data;
@@ -1106,9 +1100,6 @@ namespace viewer
   {
 #ifdef IGL_VIEWER_WITH_NANOGUI_SERIALIZATION
 
-    igl::deserialize(window_maximized,"window_maximized",fname.c_str());
-    igl::deserialize(window_position,"window_position",fname.c_str());
-    igl::deserialize(window_size,"window_size",fname.c_str());
     igl::deserialize(core,"Core",fname.c_str());
 
 #ifndef ENABLE_SERIALIZATION_CORE_ONLY
@@ -1120,29 +1111,6 @@ namespace viewer
     data = data_buffer[active_data_id];
 #endif
 
-    if(window_position(0) < 0 || window_position(1) < 0 || window_size(0) < 0 || window_size(1) < 0)
-    {
-      window_position << 200,200;
-      window_size << 640,480;
-    }
-
-    if(window_maximized)
-    {
-      glfwSetWindowPos(window,window_position(0),window_position(1));
-      glfwSetWindowSize(window,window_size(0),window_size(1));
-#ifdef GLFW_VERSION_HIGHER_THAN_3_1
-      glfwMaximizeWindow(window);
-#endif
-    }
-    else
-    {
-      glfwSetWindowPos(window,window_position(0),window_position(1));
-      glfwSetWindowSize(window,window_size(0),window_size(1));
-#ifdef GLFW_VERSION_HIGHER_THAN_3_1
-      glfwRestoreWindow(window);
-#endif
-    }
-
 #endif
 
     return true;
@@ -1150,15 +1118,6 @@ namespace viewer
 
   IGL_INLINE void Viewer::resize(int w,int h)
   {
-#ifdef GLFW_VERSION_HIGHER_THAN_3_1
-    window_maximized = glfwGetWindowAttrib(window,GLFW_MAXIMIZED);
-#endif
-
-    if(!window_maximized)
-    {
-      window_size << w,h;
-    }
-
     core.viewport = Eigen::Vector4f(0,0,w,h);
   }
 
@@ -1197,7 +1156,7 @@ namespace viewer
 
     glfwWindowHint(GLFW_SAMPLES, 8);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 
     #ifdef __APPLE__
       glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -1221,6 +1180,7 @@ namespace viewer
       return EXIT_FAILURE;
     }
 
+		glfwSetWindowPos(window, 80, 45);
     glfwMakeContextCurrent(window);
 
     #ifndef __APPLE__
@@ -1259,7 +1219,6 @@ namespace viewer
     // Register callbacks
     glfwSetKeyCallback(window, glfw_key_callback);
     glfwSetCursorPosCallback(window,glfw_mouse_move);
-    glfwSetWindowPosCallback(window,glfw_window_position);
     glfwSetWindowSizeCallback(window,glfw_window_size);
     glfwSetMouseButtonCallback(window,glfw_mouse_press);
     glfwSetScrollCallback(window,glfw_mouse_scroll);
@@ -1268,21 +1227,21 @@ namespace viewer
 
     // Handle retina displays (windows and mac)
     glfwGetFramebufferSize(window, &width, &height);
-    
-    glfwGetWindowPos(window,&window_position(0),&window_position(1));
-    glfwGetWindowSize(window, &window_size(0), &window_size(1));
 
-    highdpi = width/window_size(0);
+    int width_window, height_window;
+    glfwGetWindowSize(window, &width_window, &height_window);
 
-    glfw_window_size(window,window_size(0),window_size(1));
+    highdpi = width/width_window;
+
+    glfw_window_size(window,width_window,height_window);
 
     for(auto& v : opengl)
     {
       v.init();
     }
+    
 
-    // set camera zoom and position to show mesh centered
-    core.align_camera_position(data);
+    core.align_camera_center(data);
 
     // Initialize IGL viewer
     init();

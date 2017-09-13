@@ -37,6 +37,10 @@ public:
   // Shutdown
   IGL_INLINE void shut();
 
+  // Serialization code
+  IGL_INLINE void InitSerialization();
+
+
   // ------------------- Camera control functions
   
   // Set camera eye to new position (keep camera orientation)
@@ -78,19 +82,9 @@ public:
 
   // Draw everything
   IGL_INLINE void draw(ViewerData& data, OpenGL_state& opengl, bool update_matrices = true);
-  
   IGL_INLINE void draw_buffer(
     ViewerData& data,
     OpenGL_state& opengl,
-    bool update_matrices,
-    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
-    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
-    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
-    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A);
-
-  IGL_INLINE void draw_buffer(
-    std::vector<ViewerData*>& data,
-    std::vector<OpenGL_state*>& opengl,
     bool update_matrices,
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
@@ -105,6 +99,14 @@ public:
     NUM_ROTATION_TYPES = 2
   };
   IGL_INLINE void set_rotation_type(const RotationType & value);
+
+  IGL_INLINE void draw_buffer(std::vector<ViewerData*>& data,
+                              std::vector<OpenGL_state*>& opengl,
+                              bool update_matrices,
+                              Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
+                              Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
+                              Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
+                              Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A);
 
   // ------------------- Properties
 
@@ -129,6 +131,7 @@ public:
 
   // Camera parameters
   float camera_zoom;
+	float uv_camera_zoom = 1.0, mesh_camera_zoom = 1.0, highlight_camera_zoom = 1.0;
   bool orthographic;
   Eigen::Vector3f camera_eye;
   Eigen::Vector3f camera_up;
@@ -141,8 +144,11 @@ public:
   bool is_animating;
   double animation_max_fps;
 
+	double overlay_line_width = 50.;
+
   // Viewport size
   Eigen::Vector4f viewport;
+	Eigen::Vector4f highlight_viewport;
 
   // Save the OpenGL transformation matrices used for the previous rendering pass
   Eigen::Matrix4f view;
