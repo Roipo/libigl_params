@@ -3,6 +3,7 @@
 #include <igl/material_colors.h>
 #include <igl/copyleft/marching_cubes.h>
 #include <igl/copyleft/swept_volume.h>
+#include <igl/PI.h>
 #include <igl/viewer/Viewer.h>
 #include <Eigen/Core>
 #include <iostream>
@@ -20,8 +21,8 @@ int main(int argc, char * argv[])
   const auto & transform = [](const double t)->Eigen::Affine3d
   {
     Eigen::Affine3d T = Eigen::Affine3d::Identity();
-    T.rotate(Eigen::AngleAxisd(t*2.*M_PI,Eigen::Vector3d(0,1,0)));
-    T.translate(Eigen::Vector3d(0,0.125*cos(2.*M_PI*t),0));
+    T.rotate(Eigen::AngleAxisd(t*2.*PI,Eigen::Vector3d(0,1,0)));
+    T.translate(Eigen::Vector3d(0,0.125*cos(2.*PI*t),0));
     return T;
   };
   // Read in inputs as double precision floating point meshes

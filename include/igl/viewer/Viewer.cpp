@@ -399,15 +399,6 @@ namespace viewer
     callback_key_down     = nullptr;
     callback_key_up       = nullptr;
 
-    callback_init_data          = nullptr;
-    callback_pre_draw_data      = nullptr;
-    callback_post_draw_data     = nullptr;
-    callback_mouse_down_data    = nullptr;
-    callback_mouse_up_data      = nullptr;
-    callback_mouse_move_data    = nullptr;
-    callback_mouse_scroll_data  = nullptr;
-    callback_key_down_data      = nullptr;
-    callback_key_up_data        = nullptr;
 
 #ifndef IGL_VIEWER_VIEWER_QUIET
     const std::string usage(R"(igl::viewer::Viewer usage:

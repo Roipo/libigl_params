@@ -6,6 +6,7 @@
 #include <igl/readDMAT.h>
 #include <igl/readOBJ.h>
 #include <igl/viewer/Viewer.h>
+#include <igl/PI.h>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -62,7 +63,7 @@ Eigen::VectorXd random_constraints(const
   Eigen::VectorXd r(n*3);
   for (unsigned i=0; i<n;++i)
   {
-    double a = (double(rand())/RAND_MAX)*2*M_PI;
+    double a = (double(rand())/RAND_MAX)*2*igl::PI;
     double s = 1 + ((double(rand())/RAND_MAX)) * rand_factor;
     Eigen::Vector3d t = s * (cos(a) * b1 + sin(a) * b2);
     r.block(i*3,0,3,1) = t;

@@ -34,13 +34,13 @@ IGL_INLINE bool igl::is_symmetric(
     return false;
   }
   assert(A.size() != 0);
-  const typename Eigen::PlainObjectBase<DerivedA>& AT = A.transpose();
-  const typename Eigen::PlainObjectBase<DerivedA>& AmAT = A-AT;
+  //const typename Eigen::PlainObjectBase<DerivedA>& AT = A.transpose();
+  //const typename Eigen::PlainObjectBase<DerivedA>& AmAT = A-AT;
   //// Eigen screws up something with LLT if you try to do
   //SparseMatrix<T> AmAT = A-A.transpose();
-  //// Eigen crashes at runtime if you try to do
-  // return (A-A.transpose()).nonZeros() == 0;
-  return AmAT.nonZeros() == 0;
+  //// Eigen crashes at runtime if you try to do (works with Eigen version 3.3.3)
+  return (A-A.transpose()).nonZeros() == 0;
+  //return AmAT.nonZeros() == 0;
 }
 
 template <typename AType, typename epsilonT>
